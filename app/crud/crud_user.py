@@ -10,12 +10,14 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
         return db.query(User).filter(User.email == email).first()
 
-    def create(self, db: Session, *, obj_in: UserCreate) -> User:
+    def create(self, db: Session, *, obj_in: UserCreate, created_by_superuser: bool = False) -> User:
         db_obj = User(
             email=obj_in.email,
             hashed_password=get_password_hash(obj_in.password),
             full_name=obj_in.full_name,
-            is_active=False,
+            is_active=True if created_by_superuser else False,
+            is_superuser=obj_in.is_superuser,
+            analysis_attempts=obj_in.analysis_attempts
         )
         db.add(db_obj)
         db.commit()
@@ -45,6 +47,27 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     def is_active(self, user: User) -> bool:
         return user.is_active
+
+    def decrement_analysis_attempts(self, db: Session, *, user: User) -> User:
+        """
+        Уменьшает количество попыток анализа на 1
+        """
+        if user.analysis_attempts > 0:
+            user.analysis_attempts -= 1
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        return user
+
+    def update_analysis_attempts(self, db: Session, *, user: User, attempts: int) -> User:
+        """
+        Обновляет количество попыток анализа
+        """
+        user.analysis_attempts = attempts
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
 
 # Создаем экземпляр CRUDUser для использования в других модулях
 crud_user = CRUDUser(User) 
