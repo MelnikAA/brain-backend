@@ -1,7 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from sqlalchemy.orm import relationship
+from app.db.base_class import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -12,4 +11,6 @@ class User(Base):
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
-    analysis_attempts = Column(Integer, default=5) 
+    analysis_attempts = Column(Integer, default=5)
+
+    predictions = relationship("Prediction", back_populates="user") 

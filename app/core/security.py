@@ -19,6 +19,7 @@ def create_access_token(
         )
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    print("[DEBUG] Generated raw token:", encoded_jwt)  # Проверить структуру тут
     return encoded_jwt
 
 def decode_token(token: str) -> dict:

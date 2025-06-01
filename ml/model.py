@@ -26,9 +26,9 @@ class SimpleCNN(nn.Module):
         # 64 канала * 28 * 28 = 50176
         self.classifier = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(16384, 128),  # Изменено на 16384, как в сохранённой модели
+            nn.Linear(50176, 128),  # Изменено с 16384 на 50176
             nn.ReLU(inplace=True),
-            nn.Linear(128, 2)  # Убран второй слой Dropout
+            nn.Linear(128, 2)
         )
 
     def forward(self, x):

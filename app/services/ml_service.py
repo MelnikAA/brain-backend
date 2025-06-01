@@ -25,23 +25,13 @@ class MLService:
         
         return str(file_path)
 
-    def analyze_image(self, file):
+    def analyze_image(self, file_path):
         """Анализирует изображение с помощью обеих моделей"""
-        # Сохраняем файл
-        file_path = self.save_upload_file(file)
-        
         try:
             # Получаем результаты анализа
             results = self.model.analyze_image(file_path)
-            
-            # Удаляем временный файл
-            os.remove(file_path)
-            
             return results
         except Exception as e:
-            # В случае ошибки тоже удаляем файл
-            if os.path.exists(file_path):
-                os.remove(file_path)
             raise e
 
 # Создаем экземпляр сервиса

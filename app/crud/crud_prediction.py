@@ -6,6 +6,14 @@ from app.models.prediction import Prediction
 from app.schemas.prediction import PredictionCreate, PredictionUpdate
 
 class CRUDPrediction(CRUDBase[Prediction, PredictionCreate, PredictionUpdate]):
+    def create(self, db: Session, *, obj_in: PredictionCreate) -> Prediction:
+        obj_in_data = obj_in.dict()
+        db_obj = Prediction(**obj_in_data)
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
+
     def get_multi_by_user(
         self, db: Session, *, user_id: int, skip: int = 0, limit: int = 100
     ) -> List[Prediction]:
