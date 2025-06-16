@@ -6,18 +6,18 @@ from app.crud.base import CRUDBase
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 
+
 class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def get_by_email(self, db: Session, *, email: str) -> Optional[User]:
         return db.query(User).filter(User.email == email).first()
 
-    def create(self, db: Session, *, obj_in: UserCreate, created_by_superuser: bool = False) -> User:
+    def create(self, db: Session, *, obj_in: UserCreate) -> User:
         db_obj = User(
             email=obj_in.email,
-            hashed_password=get_password_hash(obj_in.password),
+            hashed_password=get_password_hash(obj_in.password) if obj_in.password else None,
             full_name=obj_in.full_name,
-            is_active=True if created_by_superuser else False,
             is_superuser=obj_in.is_superuser,
-            analysis_attempts=obj_in.analysis_attempts
+            is_active=bool(obj_in.password),
         )
         db.add(db_obj)
         db.commit()
@@ -35,6 +35,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             hashed_password = get_password_hash(update_data["password"])
             del update_data["password"]
             update_data["hashed_password"] = hashed_password
+            update_data["is_active"] = True
         return super().update(db, db_obj=db_obj, obj_in=update_data)
 
     def authenticate(self, db: Session, *, email: str, password: str) -> Optional[User]:
@@ -48,26 +49,30 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
     def is_active(self, user: User) -> bool:
         return user.is_active
 
-    def decrement_analysis_attempts(self, db: Session, *, user: User) -> User:
-        """
-        Уменьшает количество попыток анализа на 1
-        """
-        if user.analysis_attempts > 0:
-            user.analysis_attempts -= 1
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-        return user
+    def is_superuser(self, user: User) -> bool:
+        return user.is_superuser
 
-    def update_analysis_attempts(self, db: Session, *, user: User, attempts: int) -> User:
+    def count(self, db: Session) -> int:
         """
-        Обновляет количество попыток анализа
+        Count total number of users in the database
         """
-        user.analysis_attempts = attempts
+        return db.query(User).count()
+
+    def create_password_set_token(self, db: Session, *, user: User) -> str:
+        """
+        Создает токен для установки пароля и сохраняет его в базе данных.
+        Деактивирует пользователя до установки нового пароля.
+        """
+        from app.core.security import generate_password_set_token
+        from datetime import datetime, timedelta
+
+        token = generate_password_set_token(user.email)
+        user.password_set_token = token
+        user.password_set_token_expires = datetime.utcnow() + timedelta(hours=24)
+        user.is_active = False
         db.add(user)
         db.commit()
-        db.refresh(user)
-        return user
+        return token
 
-# Создаем экземпляр CRUDUser для использования в других модулях
-crud_user = CRUDUser(User) 
+
+user = CRUDUser(User) 

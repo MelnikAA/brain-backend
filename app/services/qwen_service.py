@@ -17,7 +17,7 @@ class QwenService:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "http://localhost:8000",
-            "X-Title": "Brain Tumor Detection"
+            "X-Title": "brainCHECK"
         }
         
     def encode_image(self, image_path: str) -> str:
@@ -26,14 +26,13 @@ class QwenService:
             return base64.b64encode(image_file.read()).decode('utf-8')
             
     def analyze_image(self, image_path: str) -> dict:
-        """Анализирует изображение с помощью Qwen API через OpenRouter"""
         try:
             # Кодируем изображение в base64
             base64_image = self.encode_image(image_path)
             
             # Формируем запрос
             payload = {
-                "model": "qwen/qwen2.5-vl-3b-instruct:free",
+                "model": "anthropic/claude-sonnet-4",
                 "messages": [
                     {
                         "role": "user",
@@ -166,7 +165,9 @@ class QwenService:
                     """
                     
                     return {
-                        "prediction_result": html_result,  # Возвращаем HTML
+                        "description": analysis["explanation"]["visual_description"],
+                        "conclusions": analysis["explanation"]["analysis"],
+                        "recommendations": analysis["explanation"]["recommendations"],
                         "confidence": float(analysis["confidence"])
                     }
                 except (json.JSONDecodeError, KeyError, IndexError) as e:

@@ -1,7 +1,21 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
+from app.db.init_db import init_db
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('app.log')
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -39,6 +53,16 @@ app.add_middleware(
 
 # Подключаем роутер API
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Application startup")
+    logger.info(f"Email settings: SMTP_HOST={settings.SMTP_HOST}, SMTP_PORT={settings.SMTP_PORT}, SMTP_USER={settings.SMTP_USER}, EMAILS_ENABLED={settings.EMAILS_ENABLED}")
+    init_db()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("Application shutdown")
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,119 +1,240 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Any, List
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
+from pydantic import EmailStr, BaseModel
 from sqlalchemy.orm import Session
-from typing import List
+import logging
 
-from app.core.deps import get_db, get_current_active_superuser, get_current_active_user
-from app.schemas.user import User, UserCreate, UserUpdate
-from app.crud import user as user_crud
+from app import crud, schemas
+from app.models.user import User
+from app.api import deps
+from app.core.config import settings
+from app.core.email import send_email
+from app.core.security import generate_password_set_token
+
+logger = logging.getLogger(__name__)
+
+class PasswordResetResponse(BaseModel):
+    message: str
+    user_id: int
+    email: str
 
 router = APIRouter()
 
-@router.get("/", response_model=List[User])
+@router.get("/", response_model=schemas.user.UserList)
 def read_users(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(get_db)
-):
+    db: Session = Depends(deps.get_db),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> Any:
     """
-    Получить список пользователей
+    Retrieve users.
+    Only for superusers.
     """
-    users = user_crud.get_users(db, skip=skip, limit=limit)
-    return users
+    skip = (page - 1) * size
+    users = crud.user.get_multi(db, skip=skip, limit=size)
+    total = crud.user.count(db)
+    pages = (total + size - 1) // size
+    
+    return {
+        "items": users,
+        "total": total,
+        "page": page,
+        "size": size,
+        "pages": pages
+    }
 
-@router.post("/create", response_model=User)
-def create_user_by_superuser(
+@router.post("/", response_model=schemas.user.User)
+async def create_user(
     *,
-    db: Session = Depends(get_db),
-    user_in: UserCreate,
-    current_user: User = Depends(get_current_active_superuser)
-):
+    db: Session = Depends(deps.get_db),
+    user_in: schemas.user.UserCreate,
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> Any:
     """
-    Создание нового пользователя суперпользователем
+    Create new user.
     """
-    user = user_crud.get_by_email(db, email=user_in.email)
+    user = crud.user.get_by_email(db, email=user_in.email)
     if user:
         raise HTTPException(
             status_code=400,
-            detail="Пользователь с таким email уже существует"
+            detail="The user with this email already exists in the system.",
         )
-    user = user_crud.create(db, obj_in=user_in, created_by_superuser=True)
+    
+    user = crud.user.create(db, obj_in=user_in)
+    
+    # Если пароль не указан, генерируем токен для установки пароля
+    if not user_in.password and settings.EMAILS_ENABLED:
+        try:
+            token = generate_password_set_token(user.email)
+            # Формируем URL для фронтенда
+            frontend_url = settings.FRONTEND_URL.rstrip('/')
+            password_set_url = f"{frontend_url}/set-password?token={token}&email={user.email}"
+            
+            await send_email(
+                email_to=user.email,
+                subject_template="Установите пароль",
+                html_template_name="set_password.html",
+                environment={
+                    "project_name": settings.PROJECT_NAME,
+                    "username": user.email,
+                    "token": token,
+                    "password_set_url": password_set_url
+                },
+            )
+        except Exception as e:
+            logger.error(f"Failed to send email: {str(e)}")
+    
     return user
 
-@router.post("/", response_model=User)
-def create_user(
-    user: UserCreate,
-    db: Session = Depends(get_db)
-):
+@router.put("/me", response_model=schemas.user.User)
+def update_user_me(
+    *,
+    db: Session = Depends(deps.get_db),
+    password: str = Body(None),
+    full_name: str = Body(None),
+    email: EmailStr = Body(None),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
     """
-    Создать нового пользователя
+    Update own user.
     """
-    db_user = user_crud.get_user_by_email(db, email=user.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    return user_crud.create_user(db=db, user=user)
+    current_user_data = jsonable_encoder(current_user)
+    user_in = schemas.user.UserUpdate(**current_user_data)
+    if password is not None:
+        user_in.password = password
+    if full_name is not None:
+        user_in.full_name = full_name
+    if email is not None:
+        user_in.email = email
+    user = crud.user.update(db, db_obj=current_user, obj_in=user_in)
+    return user
 
-@router.get("/{user_id}", response_model=User)
-def read_user(
+@router.get("/me", response_model=schemas.user.User)
+def read_user_me(
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get current user.
+    """
+    return current_user
+
+@router.get("/{user_id}", response_model=schemas.user.User)
+def read_user_by_id(
     user_id: int,
-    db: Session = Depends(get_db)
-):
+    current_user: User = Depends(deps.get_current_active_user),
+    db: Session = Depends(deps.get_db),
+) -> Any:
     """
-    Получить пользователя по ID
+    Get a specific user by id.
     """
-    db_user = user_crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-@router.put("/{user_id}", response_model=User)
-def update_user(
-    user_id: int,
-    user: UserUpdate,
-    db: Session = Depends(get_db)
-):
-    """
-    Обновить пользователя
-    """
-    db_user = user_crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user_crud.update_user(db=db, user_id=user_id, user=user)
-
-@router.delete("/{user_id}", response_model=User)
-def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db)
-):
-    """
-    Удалить пользователя
-    """
-    db_user = user_crud.get_user(db, user_id=user_id)
-    if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user_crud.delete_user(db=db, user_id=user_id)
-
-@router.put("/me/analysis-attempts", response_model=User)
-def update_my_analysis_attempts(
-    attempts: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    """
-    Обновить количество попыток анализа для текущего пользователя
-    """
-    if attempts < 0:
+    user = crud.user.get(db, id=user_id)
+    if user == current_user:
+        return user
+    if not crud.user.is_superuser(current_user):
         raise HTTPException(
-            status_code=400,
-            detail="Количество попыток не может быть отрицательным"
+            status_code=400, detail="The user doesn't have enough privileges"
         )
-    return user_crud.update_analysis_attempts(db=db, user=current_user, attempts=attempts)
+    return user
 
-@router.get("/me/analysis-attempts", response_model=User)
-def get_my_analysis_attempts(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
+@router.put("/{user_id}", response_model=schemas.user.User)
+def update_user(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    user_in: schemas.user.UserUpdate,
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> Any:
     """
-    Получить информацию о количестве попыток анализа для текущего пользователя
+    Update a user.
     """
-    return current_user 
+    user = crud.user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="The user with this username does not exist in the system",
+        )
+    user = crud.user.update(db, db_obj=user, obj_in=user_in)
+    return user
+
+@router.delete("/{user_id}", response_model=schemas.user.User)
+def delete_user(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    """
+    Удалить пользователя.
+    """
+    user = crud.user.get(db, id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Пользователь не найден",
+        )
+    user = crud.user.remove(db, id=user_id)
+    return user
+
+@router.post("/{user_id}/reset-password-request", response_model=PasswordResetResponse)
+async def request_password_reset(
+    *,
+    db: Session = Depends(deps.get_db),
+    user_id: int,
+    current_user: User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    """
+    Request password reset for a user.
+    Sends an email with a link to set a new password.
+    Only for superusers.
+    """
+    try:
+        user = crud.user.get(db, id=user_id)
+        if not user:
+            logger.error(f"User with id {user_id} not found")
+            raise HTTPException(
+                status_code=404,
+                detail="User not found",
+            )
+        
+        # Создаем токен для установки пароля
+        token = crud.user.create_password_set_token(db, user=user)
+        
+        # Отправляем email с токеном
+        if not settings.EMAILS_ENABLED:
+            logger.error("Email sending is disabled in settings")
+            raise HTTPException(
+                status_code=400,
+                detail="Email sending is disabled"
+            )
+
+        # Формируем URL для фронтенда
+        frontend_url = settings.FRONTEND_URL.rstrip('/')  # Убираем trailing slash если есть
+        password_set_url = f"{frontend_url}/set-password?token={token}&email={user.email}"
+        
+        logger.info(f"Generated password reset URL: {password_set_url}")
+        
+        await send_email(
+            email_to=user.email,
+            subject_template="Сброс пароля",
+            html_template_name="password_set.html",
+            environment={
+                "project_name": settings.PROJECT_NAME,
+                "password_set_url": password_set_url,
+                "email": user.email
+            },
+        )
+        
+        return {
+            "message": "Password reset email has been sent successfully",
+            "user_id": user.id,
+            "email": user.email
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in request_password_reset: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to send password reset email: {str(e)}"
+        ) 

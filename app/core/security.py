@@ -22,6 +22,20 @@ def create_access_token(
     print("[DEBUG] Generated raw token:", encoded_jwt)  # Проверить структуру тут
     return encoded_jwt
 
+def generate_password_set_token(email: str) -> str:
+    """
+    Генерирует токен для установки пароля.
+    Токен действителен 24 часа.
+    """
+    expire = datetime.utcnow() + timedelta(hours=24)
+    to_encode = {
+        "exp": expire,
+        "sub": email,
+        "type": "password_set"
+    }
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
 def decode_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
