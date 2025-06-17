@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 24
     
     # CORS настройки
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000", "http://localhost:5173", "https://braincheck-diplom.ru"]
+    ALLOWED_ORIGINS: List[str] = ["https://braincheck-diplom.ru"]
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     # Настройки для загрузки файлов
@@ -63,9 +63,9 @@ class Settings(BaseSettings):
     OPENROUTER_API_URL: str = os.getenv("OPENROUTER_API_URL", "https://openrouter.ai/api/v1")
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
 
-    SERVER_NAME: str = "localhost"
-    SERVER_HOST: str = "http://localhost:8000"
-    FRONTEND_URL: str = "http://localhost:5173"
+    SERVER_NAME: str = "braincheck-diplom.ru"
+    SERVER_HOST: str = "https://braincheck-diplom.ru"
+    FRONTEND_URL: str = "https://braincheck-diplom.ru"
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
