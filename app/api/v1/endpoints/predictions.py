@@ -161,7 +161,7 @@ def read_predictions(
     size: int = Query(10, ge=1, le=100),
     has_tumor: Optional[bool] = Query(None),
     patient_id: Optional[int] = Query(None),
-    owner_id: Optional[int] = Query(None),
+    owner_id: Optional[str] = Query(None),
     created_from: Optional[str] = Query(None, description="Фильтр по дате создания от (включительно) в формате YYYY-MM-DD"),
     created_to: Optional[str] = Query(None, description="Фильтр по дате создания до (включительно) в формате YYYY-MM-DD"),
     current_user: User = Depends(deps.get_current_active_user),
@@ -183,8 +183,12 @@ def read_predictions(
         query = query.filter(crud.prediction.model.patient_id == patient_id)
     if has_tumor is not None:
         query = query.filter(crud.prediction.model.has_tumor == has_tumor)
-    if owner_id is not None:
-        query = query.filter(crud.prediction.model.user_id == owner_id)
+    if owner_id is not None and owner_id.strip():  # Проверяем, что строка не пустая
+        try:
+            owner_id_int = int(owner_id)
+            query = query.filter(crud.prediction.model.user_id == owner_id_int)
+        except ValueError:
+            pass  # Игнорируем невалидные значения
     
     # Преобразуем строки дат в объекты datetime
     created_from_date = parse_date(created_from)

@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import desc, and_
 
 from app.crud.base import CRUDBase
@@ -21,7 +21,7 @@ class CRUDPrediction(CRUDBase[Prediction, PredictionCreate, PredictionUpdate]):
             patient_id=obj_in.patient_id,
             user_id=obj_in.user_id,
             notes=obj_in.notes,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db.add(db_obj)
         db.commit()
