@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 24
     
     # CORS настройки
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000", "http://localhost:5173"]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000", "http://localhost:5173", "https://braincheck-diplom.ru"]
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     # Настройки для загрузки файлов
