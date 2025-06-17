@@ -37,6 +37,9 @@ dev = [
     "mypy>=0.910",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
 [tool.black]
 line-length = 88
 target-version = ['py38']
