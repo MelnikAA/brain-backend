@@ -22,7 +22,7 @@ class OpenRouterService:
             raise ValueError("OPENROUTER_API_KEY environment variable is not set")
         
         # Используем фиксированный URL API
-        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.api_url = "https://openrouter.ai/api/v1"
         logger.debug(f"OpenRouterService initialized with API URL: {self.api_url}")
         
         self.headers = {
