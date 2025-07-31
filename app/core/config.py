@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: str = "5432"
     POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "medical_predictions"
+    POSTGRES_PASSWORD: str = "1234"
+    POSTGRES_DB: str = "diplob_bd"
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
 
     # Настройки SMTP
@@ -44,11 +44,18 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-here"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    VERIFICATION_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 24
     
     # CORS настройки
-    ALLOWED_ORIGINS: List[str] = ["https://braincheck-diplom.ru"]
+    ALLOWED_ORIGINS: List[str] = [
+        "https://braincheck-diplom.ru",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://braintest-itmo.ru",
+        "https://braintest-itmo.ru"
+    ]
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
     # Настройки для загрузки файлов

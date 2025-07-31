@@ -1,0 +1,103 @@
+@startuml BrainCheck Architecture
+
+!define RECTANGLE class
+
+skinparam backgroundColor white
+skinparam handwritten false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam roundcorner 20
+skinparam shadowing true
+skinparam ArrowColor #2C3E50
+skinparam BorderColor #2C3E50
+skinparam NoteBorderColor #2C3E50
+skinparam NoteBackgroundColor #ECF0F1
+
+skinparam package {
+    BackgroundColor #ECF0F1
+    BorderColor #2C3E50
+}
+
+skinparam component {
+    BackgroundColor #ECF0F1
+    BorderColor #2C3E50
+}
+
+skinparam database {
+    BackgroundColor #ECF0F1
+    BorderColor #2C3E50
+}
+
+title BrainCheck - Архитектура приложения
+
+' Основные компоненты
+package "Frontend" {
+    [React Application] as React
+    [Material-UI Components] as MUI
+    [React Router] as Router
+    [Axios Client] as Axios
+}
+
+package "Backend" {
+    package "API Layer" {
+        [FastAPI Application] as FastAPI
+        [API Endpoints] as Endpoints
+        [Authentication] as Auth
+    }
+
+    package "Business Logic" {
+        [CRUD Operations] as CRUD
+        [Services] as Services
+        [AI Models] as AI
+    }
+
+    package "Data Layer" {
+        [SQLAlchemy ORM] as ORM
+        [PostgreSQL] as DB
+        [Alembic Migrations] as Migrations
+    }
+}
+
+package "External Services" {
+    [DeepSeek API] as DeepSeek
+    [OpenRouter API] as OpenRouter
+    [Email Service] as Email
+}
+
+' Связи между компонентами
+React --> Axios : HTTP Requests
+Axios --> FastAPI : REST API
+FastAPI --> Endpoints : Routes
+Endpoints --> Auth : JWT
+Endpoints --> CRUD : Business Logic
+CRUD --> ORM : Data Access
+ORM --> DB : SQL
+Services --> AI : Model Integration
+AI --> DeepSeek : API Calls
+AI --> OpenRouter : API Calls
+Auth --> Email : Notifications
+
+' Стилизация
+note right of React
+  React + TypeScript
+  Material-UI
+  React Router
+end note
+
+note right of FastAPI
+  FastAPI
+  Pydantic
+  JWT Authentication
+end note
+
+note right of DB
+  PostgreSQL
+  Alembic Migrations
+end note
+
+note right of AI
+  Deep Learning Models
+  Medical Image Analysis
+end note
+
+@enduml 

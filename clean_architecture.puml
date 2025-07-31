@@ -1,0 +1,35 @@
+@startuml Clean Architecture
+
+' Стили
+skinparam component {
+    BackgroundColor White
+    ArrowColor Black
+    BorderColor Black
+}
+
+' Слои архитектуры
+package "Interface Adapters\n(app/api/)" {
+    [API Endpoints]
+}
+
+package "Use Cases\n(app/services/)" {
+    [Business Logic]
+}
+
+package "Entities\n(app/models/)" {
+    [Domain Models]
+}
+
+package "Frameworks & Drivers" {
+    [Database]
+    [External APIs]
+}
+
+' Связи
+[HTTP Request] --> [API Endpoints]
+[API Endpoints] --> [Business Logic]
+[Business Logic] --> [Domain Models]
+[Business Logic] --> [Database]
+[Business Logic] --> [External APIs]
+
+@enduml 

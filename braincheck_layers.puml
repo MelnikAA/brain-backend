@@ -1,0 +1,54 @@
+@startuml braincheck_layers
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam roundCorner 10
+skinparam padding 5
+skinparam nodesep 80
+skinparam ranksep 100
+
+rectangle "Слой представления" as presentation #F5F5F5 {
+    [FastAPI]
+}
+
+rectangle "Слой бизнес-логики" as business #E8E8E8 {
+    [Сервисы]
+}
+
+rectangle "Доменный слой" as domain #DBDBDB {
+    [Модели]
+}
+
+rectangle "Слой данных" as data #CECECE {
+    [Репозитории]
+}
+
+presentation --> business
+business --> domain
+domain --> data
+
+note right of presentation
+  <b>Слой представления</b>:
+  - API эндпоинты
+  - JWT аутентификация
+end note
+
+note right of business
+  <b>Слой бизнес-логики</b>:
+  - AI сервис
+  - Управление пользователями
+end note
+
+note right of domain
+  <b>Доменный слой</b>:
+  - SQLAlchemy модели
+  - Pydantic схемы
+end note
+
+note right of data
+  <b>Слой данных</b>:
+  - CRUD операции
+  - PostgreSQL
+end note
+
+@enduml 

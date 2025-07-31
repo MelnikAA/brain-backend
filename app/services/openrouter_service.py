@@ -218,13 +218,18 @@ class OpenRouterService:
                 data=json.dumps(payload)
             )
             logger.debug(f"Response status code: {response.status_code}")
+            logger.debug(f"Response headers: {response.headers}")
+            logger.debug(f"Response content: {response.text}")
             
             # Проверяем статус ответа
             response.raise_for_status()
             
             # Извлекаем контент из ответа
             response_data = response.json()
+            logger.debug(f"Parsed response data: {json.dumps(response_data, indent=2)}")
+            
             if not response_data.get("choices"):
+                logger.error(f"Invalid response structure: {response_data}")
                 raise ValueError("No choices in response")
                 
             content = response_data["choices"][0]["message"]["content"]

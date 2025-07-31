@@ -1,0 +1,68 @@
+@startuml Database Schema
+
+' Стили
+skinparam class {
+    BackgroundColor White
+    ArrowColor Black
+    BorderColor Black
+}
+
+' Модели
+class User {
+    +id: Integer <<PK>>
+    +email: String <<unique>>
+    +hashed_password: String
+    +full_name: String
+    +is_active: Boolean
+    +is_superuser: Boolean
+    +password_set_token: String
+    +password_set_token_expires: DateTime
+    +created_at: DateTime
+    +updated_at: DateTime
+}
+
+class Image {
+    +id: Integer <<PK>>
+    +filename: String
+    +content_type: String
+    +data: LargeBinary
+    +created_at: DateTime
+}
+
+class Patient {
+    +id: Integer <<PK>>
+    +full_name: String
+    +birth_date: Date
+    +external_id: String
+}
+
+class Prediction {
+    +id: Integer <<PK>>
+    +image_id: Integer <<FK>>
+    +description: Text
+    +conclusions: Text
+    +recommendations: Text
+    +notes: Text
+    +confidence: Float
+    +has_tumor: Boolean
+    +medical_context: Text
+    +segmentation_mask: String
+    +created_at: DateTime
+    +updated_at: DateTime
+    +user_id: Integer <<FK>>
+    +patient_id: Integer <<FK>>
+}
+
+' Связи
+User -down-> Prediction : makes >
+Image -down-> Prediction : has >
+Patient -down-> Prediction : belongs to >
+
+' Расположение
+layout
+User at (0,0)
+Image at (200,0)
+Patient at (400,0)
+Prediction at (200,200)
+
+@enduml 

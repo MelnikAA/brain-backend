@@ -1,0 +1,148 @@
+@startuml BrainCheck Backend Architecture
+
+!define RECTANGLE class
+
+skinparam backgroundColor white
+skinparam handwritten false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam roundcorner 20
+skinparam shadowing true
+skinparam ArrowColor #2C3E50
+skinparam BorderColor #2C3E50
+skinparam NoteBorderColor #2C3E50
+skinparam NoteBackgroundColor #ECF0F1
+
+skinparam package {
+    BackgroundColor #ECF0F1
+    BorderColor #2C3E50
+}
+
+skinparam component {
+    BackgroundColor #ECF0F1
+    BorderColor #2C3E50
+}
+
+skinparam database {
+    BackgroundColor #ECF0F1
+    BorderColor #2C3E50
+}
+
+title BrainCheck - Backend Architecture (Clean Architecture + Repository Pattern)
+
+' Основные слои Clean Architecture
+package "Presentation Layer" {
+    [FastAPI Application] as FastAPI
+    package "API Endpoints" {
+        [Auth Endpoints] as AuthEP
+        [User Endpoints] as UserEP
+        [Prediction Endpoints] as PredEP
+    }
+}
+
+package "Business Logic Layer" {
+    package "Services" {
+        [AI Service] as AIService
+        [Email Service] as EmailService
+        [Auth Service] as AuthService
+    }
+    
+    package "Use Cases" {
+        [User Management] as UserUC
+        [Prediction Management] as PredUC
+    }
+}
+
+package "Domain Layer" {
+    package "Models" {
+        [User Model] as UserModel
+        [Prediction Model] as PredModel
+    }
+    
+    package "Schemas" {
+        [User Schema] as UserSchema
+        [Prediction Schema] as PredSchema
+    }
+}
+
+package "Data Layer" {
+    package "Repositories" {
+        [User Repository] as UserRepo
+        [Prediction Repository] as PredRepo
+    }
+    
+    [SQLAlchemy ORM] as ORM
+    [PostgreSQL] as DB
+    [Alembic Migrations] as Migrations
+}
+
+package "Infrastructure" {
+    [Dependencies] as Deps
+    [Configuration] as Config
+    [Security] as Security
+}
+
+' Связи между слоями (соблюдая принципы Clean Architecture)
+FastAPI --> AuthEP : Routes
+FastAPI --> UserEP : Routes
+FastAPI --> PredEP : Routes
+
+AuthEP --> AuthService : Uses
+UserEP --> UserUC : Uses
+PredEP --> PredUC : Uses
+
+UserUC --> UserRepo : Depends on
+PredUC --> PredRepo : Depends on
+AuthService --> UserRepo : Depends on
+
+UserRepo --> ORM : Uses
+PredRepo --> ORM : Uses
+ORM --> DB : Queries
+
+AIService --> PredUC : Used by
+EmailService --> UserUC : Used by
+AuthService --> Security : Uses
+
+' Зависимости
+Deps --> AuthService : Injects
+Deps --> UserRepo : Injects
+Deps --> PredRepo : Injects
+Config --> Security : Provides
+
+' Стилизация и заметки
+note right of FastAPI
+  Presentation Layer
+  - REST API
+  - Request/Response
+  - Input Validation
+end note
+
+note right of UserUC
+  Business Logic Layer
+  - Use Cases
+  - Business Rules
+  - Domain Logic
+end note
+
+note right of UserModel
+  Domain Layer
+  - Entities
+  - Value Objects
+  - Domain Rules
+end note
+
+note right of UserRepo
+  Data Layer
+  - Repository Pattern
+  - Data Access
+  - Persistence
+end note
+
+note right of Deps
+  Infrastructure
+  - Dependency Injection
+  - Configuration
+  - Security
+end note
+
+@enduml 
